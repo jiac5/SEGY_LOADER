@@ -3,7 +3,7 @@ using namespace std;
 
 #include <vtkSmartPointer.h>
 #include <vtkStructuredPointsReader.h>
-#include <vtkVolumeTextureMapper3D.h>
+#include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkPiecewiseFunction.h>
 #include <vtkRenderer.h>
@@ -100,7 +100,7 @@ void render(vtkImageData* id)
     volumeProperty->SetSpecularPower(70.0);
 
 
-    vtkSmartPointer<vtkVolumeTextureMapper3D> volumeMapper = vtkVolumeTextureMapper3D::New();
+    vtkSmartPointer<vtkGPUVolumeRayCastMapper> volumeMapper = vtkGPUVolumeRayCastMapper::New();
     volumeMapper->SetInputData(id);
 
     vtkVolume *volume=vtkVolume::New();
@@ -192,11 +192,11 @@ void demo2D()
     renderWindowInteractor->SetRenderWindow(renderWindow);
 
     vector<string> files;
-    files.push_back("Data/lineA.sgy");
-    files.push_back("Data/lineB.sgy");
-    files.push_back("Data/lineC.sgy");
-    files.push_back("Data/lineD.sgy");
-    files.push_back("Data/lineE.sgy");
+    files.push_back("data/lineA.sgy");
+    files.push_back("data/lineB.sgy");
+    files.push_back("data/lineC.sgy");
+    files.push_back("data/lineD.sgy");
+    files.push_back("data/lineE.sgy");
 
     auto file = files[0];
     //for(auto file : files)
@@ -228,7 +228,7 @@ void demo2D()
 void demo3D()
 {
     vtkSmartPointer<vtkSegy3DReader> reader = vtkSmartPointer<vtkSegy3DReader>::New();
-    reader->SetFileName("Data/waha8.sgy");
+    reader->SetFileName("data/waha8.sgy");
     vtkSmartPointer<vtkImageData> imageData = reader->GetImage(0);
     render(imageData);
 }
@@ -247,7 +247,7 @@ void demoRDV()
     RdvReader reader;
 
     auto polyData = vtkPolyData::New();
-    reader.Read("Data/Events.rdv", polyData);
+    reader.Read("data/Events.rdv", polyData);
 
     vtkSmartPointer<vtkGlyph3D> glyph3D =
             vtkSmartPointer<vtkGlyph3D>::New();
@@ -309,11 +309,11 @@ int main(int argc, char** argv)
     }
     else if(argc > 1 && strcmp(argv[1], "3") == 0)
     {
-        demoRDV();
+        demo3D();
     }
     else
     {
-        demo2D();
+        demoRDV();
     }
     return 0;
 }
