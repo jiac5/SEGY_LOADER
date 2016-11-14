@@ -20,6 +20,7 @@
 #include <set>
 #include <vtkInformationVector.h>
 #include <vtkInformation.h>
+#include <vtkCellData.h>
 
 
 SegyReader::~SegyReader()
@@ -147,6 +148,51 @@ bool SegyReader::ExportData3D(vtkImageData *imageData)
     return true;
 }
 
+
+bool SegyReader::AddScalars(vtkPolyData* polyData)
+{
+
+  vtkSmartPointer<vtkFloatArray> cellData =
+    vtkSmartPointer<vtkFloatArray>::New();
+  cellData->SetName("trace");
+  cellData->SetNumberOfComponents(1);
+
+  int crossLineCount = data.size();
+
+  cellData->Allocate(crossLineCount * sampleCountPerTrace);
+
+  float min_data = INT_MAX;
+  float max_data = INT_MIN;
+
+  for(auto trace : data)
+  {
+      for(auto m : trace->data)
+      {
+          if(m < min_data)
+              min_data = m;
+          if(m > max_data )
+              max_data = m;
+      }
+  }
+
+      for (int k = 0; k < sampleCountPerTrace; k++)
+      {
+        for (int i = 0; i < data.size(); i++)
+        {
+        cellData->InsertValue( i * sampleCountPerTrace + k, 256.0 * (data[i]->data[k] - min_data)/(max_data-min_data) );
+        }
+      }
+
+    polyData->GetCellData()->SetScalars(cellData);
+    polyData->GetCellData()->SetActiveScalars("trace");
+
+
+    return true;
+}
+
+
+#include <vtkXMLPolyDataWriter.h>
+
 bool SegyReader::ExportData2D(vtkPolyData * polyData)
 {
     vtkSmartPointer<vtkPoints> points =
@@ -162,8 +208,8 @@ bool SegyReader::ExportData2D(vtkPolyData * polyData)
         for(int i=0;i < data.size(); i++)
         {
             auto trace = data[i];
-            float x = trace->xCoordinate / 100000.0;
-            float y = trace->yCoordinate / 100000.0;
+            float x = trace->xCoordinate / 10000.0;
+            float y = trace->yCoordinate / 10000.0;
 
             float z = k * 100.0 / sampleCountPerTrace;
             points->InsertNextPoint(x, y, z);
@@ -197,19 +243,26 @@ bool SegyReader::ExportData2D(vtkPolyData * polyData)
         }
     }
 
-    //vtkSmartPointer<vtkTexture> texture =
+    // vtkSmartPointer<vtkTexture> texture =
     //        vtkSmartPointer<vtkTexture>::New();
 
-    //vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
-    //ExportData3D(imageData);
-    //texture->SetInputDataObject(imageData);
+    // vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+    // ExportData3D(imageData);
+    // std::cerr << "imageData " << imageData << std::endl;
+    // texture->SetInputDataObject(imageData);
 
     polyData->SetPoints(points);
     polyData->SetPolys(quads);
-    //polyData->GetPointData()->SetTCoords(textureCoordinates);
+    this->AddScalars(polyData);
+    // polyData->GetPointData()->SetTCoords(textureCoordinates);
 
+    vtkNew<vtkXMLPolyDataWriter> writer;
+    writer->SetInputData(polyData);
+    writer->SetFileName("test.vtp");
+    writer->Write();
     return polyData;
 }
+
 
 
 

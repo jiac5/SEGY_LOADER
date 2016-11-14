@@ -30,6 +30,7 @@ public:
     bool ExportData3D(vtkImageData *); // export the data in segy file as 3D volume
     bool LoadFromFile(string path);
     bool ExportData2D(vtkPolyData *);
+    bool AddScalars(vtkPolyData *);
 private:
     bool readHeader(ifstream& in);
     vector<Trace*> data;
