@@ -149,6 +149,79 @@ bool SegyReader::ExportData3D(vtkImageData *imageData)
 }
 
 
+bool SegyReader::GetImageData(vtkImageData *imageData)
+{
+  set<int> crosslineNumbers, inlineNumbers;
+  for(auto trace : data)
+  {
+      crosslineNumbers.insert(trace->crosslineNumber);
+      inlineNumbers.insert(trace->inlineNumber);
+  }
+
+
+
+  map<int, vector<Trace*> > cross_inline_map;
+
+  float min_data = INT_MAX;
+  float max_data = INT_MIN;
+
+  for(auto trace : data)
+  {
+      int cross = trace->crosslineNumber;
+      auto pair = cross_inline_map.find(cross);
+      if( pair == cross_inline_map.end() )
+      {
+          cross_inline_map.insert(make_pair(cross, vector<Trace*>()));
+      }
+      pair = cross_inline_map.find(cross);
+      pair->second.push_back(trace);
+
+      for(auto m : trace->data)
+      {
+          if(m < min_data)
+              min_data = m;
+          if(m > max_data )
+              max_data = m;
+      }
+  }
+
+
+
+    int crossLineCount = cross_inline_map.size();
+
+    imageData->SetDimensions(1, crossLineCount, sampleCountPerTrace);
+
+    int type = VTK_FLOAT;
+    imageData->SetScalarType(type, imageData->GetInformation());
+    imageData->SetNumberOfScalarComponents(1, imageData->GetInformation());
+    imageData->AllocateScalars(type, 1);
+    float *ptr=(float *)imageData->GetScalarPointer();
+
+    cout << "sample count per trace : " << sampleCountPerTrace << endl;
+    cout << "cross line count: " << crossLineCount << endl;
+
+    cout << "min_data" << min_data << endl;
+    cout << "max_data" << max_data << endl;
+
+    int i = 0;
+    for(auto crossIter = cross_inline_map.begin(); crossIter != cross_inline_map.end(); crossIter++)
+    {
+        for (int j = 0; j < 1; j++)
+        {
+            for (int k = 0; k < sampleCountPerTrace; k++)
+            {
+                float normalizedData = (crossIter->second[j]->data[k] - min_data) * 255.0 / (max_data - min_data) ;
+
+                *(ptr + k * crossLineCount * 1 + i * 1 + j) = normalizedData;
+            }
+        }
+        i++;
+    }
+
+    return true;
+}
+
+
 bool SegyReader::AddScalars(vtkPolyData* polyData)
 {
 
